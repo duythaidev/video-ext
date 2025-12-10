@@ -1,37 +1,51 @@
 (function () {
-  // Tìm video đầu tiên
-  const video = document.querySelectorAll("video");
-  if (!video) return;
-
   const holdTime = 500;
-  let holdTimer = null;
-  const boostedSpeed = 2.0; // Tốc độ khi tăng
-  const normalSpeed = 1.0; // Tốc độ bình thường
+  const boostedSpeed = 2.0;
+  const normalSpeed = 1.0;
 
-  video.addEventListener("mousedown", () => {
-    holdTimer = setTimeout(() => {
-      video.playbackRate = boostedSpeed;
-    }, holdTime);
+  function attachListeners(video) {
+    if (!video || video.__hasListener) return;
+    video.__hasListener = true;
+
+    let holdTimer = null;
+
+    const boost = () => {
+      holdTimer = setTimeout(() => {
+        video.playbackRate = boostedSpeed;
+      }, holdTime);
+    };
+
+    const reset = () => {
+      clearTimeout(holdTimer);
+      video.playbackRate = normalSpeed;
+    };
+
+    video.addEventListener("mousedown", boost);
+    video.addEventListener("mouseup", reset);
+    video.addEventListener("mouseleave", reset);
+
+    video.addEventListener("touchstart", boost);
+    video.addEventListener("touchend", reset);
+  }
+
+  document.querySelectorAll("video").forEach(attachListeners);
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.tagName === "VIDEO") {
+          attachListeners(node);
+        }
+
+        if (node.querySelectorAll) {
+          node.querySelectorAll("video").forEach(attachListeners);
+        }
+      });
+    });
   });
 
-  video.addEventListener("mouseup", () => {
-    clearTimeout(holdTimer);
-    video.playbackRate = normalSpeed;
-  });
-
-  video.addEventListener("mouseleave", () => {
-    clearTimeout(holdTimer);
-    video.playbackRate = normalSpeed;
-  });
-
-  video.addEventListener("touchstart", () => {
-    holdTimer = setTimeout(() => {
-      video.playbackRate = boostedSpeed;
-    }, holdTime);
-  });
-
-  video.addEventListener("touchend", () => {
-    clearTimeout(holdTimer);
-    video.playbackRate = normalSpeed;
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
   });
 })();
