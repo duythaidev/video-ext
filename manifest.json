@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Hold To Speed-Up Video",
+  "version": "1.0",
+  "description": "Nhấn giữ để tăng tốc video.",
+  "permissions": ["scripting"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
