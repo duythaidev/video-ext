@@ -5,6 +5,9 @@
 
   let lastActiveVideo = null;
 
+  let altHoldTimer = null;
+  let altBoosted = false;
+
   function toggleFullscreen(video) {
     if (!video) return;
 
@@ -13,6 +16,23 @@
     } else {
       video.requestFullscreen?.();
     }
+  }
+
+  function getActiveVideo() {
+    return (
+      lastActiveVideo ||
+      [...document.querySelectorAll("video")].find((v) => !v.paused)
+    );
+  }
+
+  function boostVideo(video) {
+    if (!video) return;
+    video.playbackRate = boostedSpeed;
+  }
+
+  function resetVideo(video) {
+    if (!video) return;
+    video.playbackRate = normalSpeed;
   }
 
   function attachListeners(video) {
@@ -29,13 +49,13 @@
 
       holdTimer = setTimeout(() => {
         isBoosted = true;
-        video.playbackRate = boostedSpeed;
+        boostVideo(video);
       }, holdTime);
     };
 
     const reset = () => {
       clearTimeout(holdTimer);
-      video.playbackRate = normalSpeed;
+      resetVideo(video);
 
       setTimeout(() => {
         isBoosted = false;
@@ -67,10 +87,10 @@
     video.addEventListener("click", handleClick, true);
   }
 
-  // attach existing videos
+  // Attach existing videos
   document.querySelectorAll("video").forEach(attachListeners);
 
-  // observe new videos
+  // Observe new videos
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
@@ -89,15 +109,33 @@
     subtree: true,
   });
 
-  // Keypress "f" fullscreen
+  // Fullscreen with "f"
   document.addEventListener("keydown", (e) => {
     if (e.key.toLowerCase() !== "f") return;
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
 
-    const playingVideo =
-      lastActiveVideo ||
-      [...document.querySelectorAll("video")].find((v) => !v.paused);
+    toggleFullscreen(getActiveVideo());
+  });
 
-    toggleFullscreen(playingVideo);
+  // Speed x2 with "Alt"
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Alt" || altHoldTimer || altBoosted) return;
+
+    altHoldTimer = setTimeout(() => {
+      altBoosted = true;
+      boostVideo(getActiveVideo());
+    }, holdTime);
+  });
+
+  document.addEventListener("keyup", (e) => {
+    if (e.key !== "Alt") return;
+
+    clearTimeout(altHoldTimer);
+    altHoldTimer = null;
+
+    if (altBoosted) {
+      resetVideo(getActiveVideo());
+      altBoosted = false;
+    }
   });
 })();
