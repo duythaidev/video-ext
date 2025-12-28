@@ -1,9 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Hold To Speed-Up Video",
-  "version": "1.0",
-  "description": "Nhấn giữ để tăng tốc video.",
-  "permissions": ["scripting"],
+  "version": "1.2",
+  "description": "Nhấn giữ phím tùy chọn để tăng tốc video.",
+  "permissions": ["storage", "scripting"],
+  "action": {
+    "default_title": "Speed Controller",
+    "default_popup": "options.html"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

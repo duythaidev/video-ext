@@ -4,10 +4,39 @@
   const normalSpeed = 1.0;
 
   let lastActiveVideo = null;
+  let hotkey = "Alt"; 
 
-  let altHoldTimer = null;
-  let altBoosted = false;
+  let keyHoldTimer = null;
+  let keyBoosted = false;
 
+  chrome.storage.sync.get({ hotkey: "Alt" }, (data) => {
+    hotkey = data.hotkey;
+    console.log("[Boost] Loaded hotkey:", hotkey);
+  });
+
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.hotkey) {
+      hotkey = changes.hotkey.newValue;
+      console.log("[Boost] Hotkey updated:", hotkey);
+    }
+  });
+
+  function getActiveVideo() {
+    return (
+      lastActiveVideo ||
+      [...document.querySelectorAll("video")].find((v) => !v.paused)
+    );
+  }
+
+  function boostVideo(v) {
+    if (v) v.playbackRate = boostedSpeed;
+  }
+
+  function resetVideo(v) {
+    if (v) v.playbackRate = normalSpeed;
+  }
+
+  // FULLSCREEN
   function toggleFullscreen(video) {
     if (!video) return;
 
@@ -18,23 +47,7 @@
     }
   }
 
-  function getActiveVideo() {
-    return (
-      lastActiveVideo ||
-      [...document.querySelectorAll("video")].find((v) => !v.paused)
-    );
-  }
-
-  function boostVideo(video) {
-    if (!video) return;
-    video.playbackRate = boostedSpeed;
-  }
-
-  function resetVideo(video) {
-    if (!video) return;
-    video.playbackRate = normalSpeed;
-  }
-
+  // CLICK & HOLD SPEED
   function attachListeners(video) {
     if (!video || video.__hasListener) return;
     video.__hasListener = true;
@@ -49,13 +62,13 @@
 
       holdTimer = setTimeout(() => {
         isBoosted = true;
-        boostVideo(video);
+        video.playbackRate = boostedSpeed;
       }, holdTime);
     };
 
     const reset = () => {
       clearTimeout(holdTimer);
-      resetVideo(video);
+      video.playbackRate = normalSpeed;
 
       setTimeout(() => {
         isBoosted = false;
@@ -87,10 +100,10 @@
     video.addEventListener("click", handleClick, true);
   }
 
-  // Attach existing videos
+  // attach existing videos
   document.querySelectorAll("video").forEach(attachListeners);
 
-  // Observe new videos
+  // observe new videos
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
@@ -109,7 +122,7 @@
     subtree: true,
   });
 
-  // Fullscreen with "f"
+  // FULLSCREEN KEY = "f"
   document.addEventListener("keydown", (e) => {
     if (e.key.toLowerCase() !== "f") return;
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
@@ -117,25 +130,25 @@
     toggleFullscreen(getActiveVideo());
   });
 
-  // Speed x2 with "Alt"
+  // BOOST BY HOTKEY
   document.addEventListener("keydown", (e) => {
-    if (e.key !== "Alt" || altHoldTimer || altBoosted) return;
+    if (e.key !== hotkey || keyHoldTimer || keyBoosted) return;
 
-    altHoldTimer = setTimeout(() => {
-      altBoosted = true;
+    keyHoldTimer = setTimeout(() => {
+      keyBoosted = true;
       boostVideo(getActiveVideo());
     }, holdTime);
   });
 
   document.addEventListener("keyup", (e) => {
-    if (e.key !== "Alt") return;
+    if (e.key !== hotkey) return;
 
-    clearTimeout(altHoldTimer);
-    altHoldTimer = null;
+    clearTimeout(keyHoldTimer);
+    keyHoldTimer = null;
 
-    if (altBoosted) {
+    if (keyBoosted) {
       resetVideo(getActiveVideo());
-      altBoosted = false;
+      keyBoosted = false;
     }
   });
 })();
